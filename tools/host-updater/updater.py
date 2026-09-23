@@ -15,7 +15,8 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-COMPOSE = Path("/opt/docker-compose.yaml")
+BASE_COMPOSE = Path("/opt/docker-compose.yaml")
+COMPOSE = Path("/opt/frigate-updater/docker-compose.updater.yaml")
 CONFIG = Path("/mnt/frigate-recordings/config")
 BACKUPS = Path("/root/frigate-update-backups")
 SOCKET = Path("/opt/frigate-updater/run/updater.sock")
@@ -33,6 +34,12 @@ def command(*arguments: str, timeout: int = 300) -> str:
     return subprocess.run(
         arguments, cwd="/opt", check=True, capture_output=True, text=True, timeout=timeout
     ).stdout
+
+
+def compose(*arguments: str) -> str:
+    return command(
+        "docker", "compose", "-f", str(BASE_COMPOSE), "-f", str(COMPOSE), *arguments
+    )
 
 
 def current_image(contents: str) -> tuple[int, re.Match[str]]:
@@ -115,12 +122,12 @@ def run_update() -> None:
         backup.mkdir(parents=True, exist_ok=False)
         (backup / "docker-compose.yaml").write_text(previous)
         state.update(phase="installing", message="Stopping Frigate and backing up configuration")
-        command("docker", "compose", "-f", str(COMPOSE), "stop", "frigate")
+        compose("stop", "frigate")
         stopped = True
         shutil.copytree(CONFIG, backup / "config")
         write_compose(target)
-        command("docker", "compose", "-f", str(COMPOSE), "config", "--quiet")
-        command("docker", "compose", "-f", str(COMPOSE), "up", "-d", "frigate")
+        compose("config", "--quiet")
+        compose("up", "-d", "frigate")
         for _ in range(60):
             try:
                 if health():
@@ -135,13 +142,13 @@ def run_update() -> None:
         state.update(phase="rollback", message="Update failed. Restoring previous version")
         try:
             if stopped:
-                command("docker", "compose", "-f", str(COMPOSE), "stop", "frigate")
+                compose("stop", "frigate")
                 write_compose(previous)
                 if backup and (backup / "config").exists():
                     failed_config = CONFIG.with_name(f"config.failed-{backup.name}")
                     CONFIG.rename(failed_config)
                     shutil.copytree(backup / "config", CONFIG)
-                command("docker", "compose", "-f", str(COMPOSE), "up", "-d", "frigate")
+                compose("up", "-d", "frigate")
             state.update(phase="failed", message="Update failed. Previous version restarted")
         except Exception:
             logger.exception("Frigate rollback failed")

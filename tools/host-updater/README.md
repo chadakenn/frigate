@@ -19,20 +19,20 @@ will never offer a version without its custom image.
 1. Copy `updater.py` to `/opt/frigate-updater/updater.py`, and the systemd unit
    to `/etc/systemd/system/frigate-updater.service`. Keep the script owned by
    root and not writable by other users.
-2. Add this **directory** bind mount to the `frigate` Compose service:
-
-   ```yaml
-   volumes:
-     - /opt/frigate-updater/run:/run/frigate-updater
-   ```
-
-   Retain all existing mounts and devices. Do not mount the Docker socket into
-   the Frigate container.
+2. Copy `docker-compose.updater.yaml` to
+   `/opt/frigate-updater/docker-compose.updater.yaml`. This override adds the
+   versioned image and a directory mount for the socket. It retains existing
+   mounts and devices from `/opt/docker-compose.yaml`. Do not mount the Docker
+   socket into the Frigate container.
 3. Start the host helper with `systemctl daemon-reload` and
    `systemctl enable --now frigate-updater.service`.
-4. Back up the existing config and Compose file. Change only the Frigate image
-   to `ghcr.io/chadakenn/frigate:0.18.0` and run
-   `docker compose -f /opt/docker-compose.yaml up -d frigate`.
+4. Back up the existing config and Compose file. Check the merged configuration
+   and start the customized image with:
+
+   ```sh
+   docker compose -f /opt/docker-compose.yaml -f /opt/frigate-updater/docker-compose.updater.yaml config --quiet
+   docker compose -f /opt/docker-compose.yaml -f /opt/frigate-updater/docker-compose.updater.yaml up -d frigate
+   ```
 5. Sign in to Frigate as admin, open System, and use the Update button when a
    newer custom image is available. The helper downloads it before interrupting
    recording, copies the stopped config and Compose file under
