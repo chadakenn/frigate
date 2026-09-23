@@ -53,7 +53,7 @@ jobs:
         env:
           VERSION: ${{ steps.release.outputs.version }}
         run: |
-          if docker buildx imagetools inspect "ghcr.io/chadakenn/frigate:$VERSION" >/dev/null 2>&1; then
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" ]] && docker buildx imagetools inspect "ghcr.io/chadakenn/frigate:$VERSION" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
       - uses: docker/build-push-action@v6
