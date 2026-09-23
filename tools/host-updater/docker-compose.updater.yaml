@@ -1,0 +1,5 @@
+services:
+  frigate:
+    image: frigate-local:0.18.0
+    volumes:
+      - /opt/frigate-updater/run:/run/frigate-updater
