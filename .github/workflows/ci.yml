@@ -4,8 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - dev
-      - master
+      - upstream-build-disabled
     paths-ignore:
       - "docs/**"
 
