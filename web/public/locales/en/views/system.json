@@ -13,6 +13,19 @@
     "health": "Health - Frigate"
   },
   "title": "System",
+  "update": {
+    "button": "Update",
+    "upToDate": "Up to date",
+    "title": "Frigate {{version}} is available",
+    "description": "This instance is running {{current}}. Latest stable release is {{latest}}. Frigate cannot replace its own container from inside the UI.",
+    "dockerHint": "If you run Docker Compose, pull the new image on the host and recreate the container:",
+    "haHint": "Home Assistant add-on users should use the Update button on the Frigate add-on page instead.",
+    "copyCommands": "Copy commands",
+    "copySuccess": "Update commands copied",
+    "copyError": "Could not copy update commands",
+    "docs": "Update docs",
+    "releaseNotes": "Release notes"
+  },
   "metrics": "System metrics",
   "health": {
     "title": "Health",
