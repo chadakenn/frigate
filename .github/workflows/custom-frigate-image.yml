@@ -1,0 +1,62 @@
+name: Custom Frigate updater image
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Stable upstream release version
+        required: true
+        default: '0.18.0'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select supported release
+        id: release
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ -z "$VERSION" ]]; then
+            VERSION=$(curl -fsSL https://api.github.com/repos/blakeblackshear/frigate/releases/latest | jq -r .tag_name)
+            VERSION=${VERSION#v}
+          fi
+          [[ "$VERSION" =~ ^0\.18\.[0-9]+$ ]] || {
+            echo "A new release line needs the overlay ported before publishing"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=true" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+        if: steps.release.outputs.build == 'true'
+      - uses: docker/login-action@v3
+        if: steps.release.outputs.build == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check for existing image
+        id: existing
+        if: steps.release.outputs.build == 'true'
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if docker buildx imagetools inspect "ghcr.io/chadakenn/frigate:$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/build-push-action@v6
+        if: steps.release.outputs.build == 'true' && steps.existing.outputs.exists != 'true'
+        with:
+          context: .
+          file: tools/host-updater/Dockerfile
+          push: true
+          platforms: linux/amd64
+          build-args: FRIGATE_VERSION=${{ steps.release.outputs.version }}
+          tags: ghcr.io/chadakenn/frigate:${{ steps.release.outputs.version }}

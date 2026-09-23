@@ -16,6 +16,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { FrigateConfig } from "@/types/frigateConfig";
 import EnrichmentMetrics from "@/views/system/EnrichmentMetrics";
 import { useTranslation } from "react-i18next";
+import UpdateDialog from "@/components/overlay/UpdateDialog";
+import { Button } from "@/components/ui/button";
 
 const allMetrics = ["general", "enrichments", "storage", "cameras"] as const;
 type SystemMetric = (typeof allMetrics)[number];
@@ -52,6 +54,7 @@ function System() {
   const [lastUpdated, setLastUpdated] = useState<number>(
     Math.floor(Date.now() / 1000),
   );
+  const [updateOpen, setUpdateOpen] = useState(false);
 
   // Track which tabs have been visited so we can keep them mounted after first visit.
   // Using a ref updated during render avoids extra render cycles from state/effects.
@@ -125,7 +128,20 @@ function System() {
             {statsSnapshot.service.version}
           </div>
         )}
+        {statsSnapshot && (
+          <Button size="sm" onClick={() => setUpdateOpen(true)}>
+            Update
+          </Button>
+        )}
       </div>
+      {statsSnapshot && (
+        <UpdateDialog
+          open={updateOpen}
+          onOpenChange={setUpdateOpen}
+          current={statsSnapshot.service.version}
+          latest={statsSnapshot.service.latest_version}
+        />
+      )}
       {visitedTabs.has("general") && (
         <div className={page == "general" ? "contents" : "hidden"}>
           <GeneralMetrics

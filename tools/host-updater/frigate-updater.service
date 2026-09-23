@@ -1,0 +1,13 @@
+[Unit]
+Description=Frigate one-click host updater
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/frigate-updater/updater.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
