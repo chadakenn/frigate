@@ -20,6 +20,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Use the reviewed updater branch, not the upstream development branch.
       - uses: actions/checkout@v4
         with:
           ref: feature/one-click-updater-v0.18
