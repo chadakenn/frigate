@@ -16,6 +16,10 @@ will never offer a version without its custom image.
 
 ## One-time installation inside frigate777
 
+Download and review `install.sh`, then run it as root inside the LXC. It carries
+out the steps below, including a stopped database backup and rollback if the
+custom image does not become healthy.
+
 1. Copy `updater.py` to `/opt/frigate-updater/updater.py`, and the systemd unit
    to `/etc/systemd/system/frigate-updater.service`. Keep the script owned by
    root and not writable by other users.
