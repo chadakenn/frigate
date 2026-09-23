@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,44 +23,55 @@ export default function UpdateDialog({
   current: string;
   latest: string;
 }) {
+  const { t } = useTranslation("views/system");
   const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!open) return;
     const refresh = () => {
-      axios.get<Status>("updater/status")
-        .then((response) => { setStatus(response.data); setError(""); })
-        .catch(() => setError("Host updater unavailable"));
+      axios
+        .get<Status>("updater/status")
+        .then((response) => {
+          setStatus(response.data);
+          setError("");
+        })
+        .catch(() => setError(t("update.unavailable")));
     };
     refresh();
     const timer = window.setInterval(refresh, 3000);
     return () => window.clearInterval(timer);
-  }, [open]);
+  }, [open, t]);
 
   const start = async () => {
     try {
       await axios.post("updater/start");
-      setStatus({ phase: "pulling", message: "Downloading the update" });
+      setStatus({ phase: "pulling", message: t("update.downloading") });
     } catch {
-      setError("Unable to start the update. Check host updater logs.");
+      setError(t("update.startError"));
     }
   };
 
-  const busy = ["pulling", "installing", "rollback"].includes(status?.phase ?? "");
+  const busy = ["pulling", "installing", "rollback"].includes(
+    status?.phase ?? "",
+  );
   const available = status?.available;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Update Frigate</DialogTitle>
-          <DialogDescription>Running {current}. Latest upstream release: {latest}.</DialogDescription>
+          <DialogTitle>{t("update.title")}</DialogTitle>
+          <DialogDescription>
+            {t("update.description", { current, latest })}
+          </DialogDescription>
         </DialogHeader>
-        <p role="status">{error || status?.message || "Checking for a custom image..."}</p>
+        <p role="status">{error || status?.message || t("update.checking")}</p>
         {available && available !== current && !busy && (
-          <Button onClick={start}>Install {available}</Button>
+          <Button onClick={start}>
+            {t("update.install", { version: available })}
+          </Button>
         )}
-        {busy && <p>The updater will continue while Frigate restarts. Reopen this page shortly.</p>}
+        {busy && <p>{t("update.restarting")}</p>}
       </DialogContent>
     </Dialog>
   );

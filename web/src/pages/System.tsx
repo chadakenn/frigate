@@ -130,7 +130,7 @@ function System() {
         )}
         {statsSnapshot && (
           <Button size="sm" onClick={() => setUpdateOpen(true)}>
-            Update
+            {t("update.button")}
           </Button>
         )}
       </div>
