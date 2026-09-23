@@ -16,11 +16,25 @@ import { Toaster } from "@/components/ui/sonner";
 import { FrigateConfig } from "@/types/frigateConfig";
 import EnrichmentMetrics from "@/views/system/EnrichmentMetrics";
 import { useTranslation } from "react-i18next";
+import axios from "axios";
+import { toast } from "sonner";
 import UpdateDialog from "@/components/overlay/UpdateDialog";
 import { Button } from "@/components/ui/button";
 
 const allMetrics = ["general", "enrichments", "storage", "cameras"] as const;
 type SystemMetric = (typeof allMetrics)[number];
+
+function isNewer(current: string, candidate: string): boolean {
+  const currentParts = current.match(/^(\d+)\.(\d+)\.(\d+)(.*)$/);
+  const candidateParts = candidate.match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!currentParts || !candidateParts) return false;
+  for (let index = 1; index <= 3; index++) {
+    const difference =
+      Number(candidateParts[index]) - Number(currentParts[index]);
+    if (difference !== 0) return difference > 0;
+  }
+  return currentParts[4].startsWith("-");
+}
 
 function System() {
   const { t } = useTranslation(["views/system"]);
@@ -55,6 +69,10 @@ function System() {
     Math.floor(Date.now() / 1000),
   );
   const [updateOpen, setUpdateOpen] = useState(false);
+  const { data: updaterStatus } = useSWR<{ available: string | null }>(
+    "updater/status",
+    { refreshInterval: 60_000 },
+  );
 
   // Track which tabs have been visited so we can keep them mounted after first visit.
   // Using a ref updated during render avoids extra render cycles from state/effects.
@@ -128,11 +146,23 @@ function System() {
             {statsSnapshot.service.version}
           </div>
         )}
-        {statsSnapshot && (
-          <Button size="sm" onClick={() => setUpdateOpen(true)}>
-            {t("update.button")}
-          </Button>
-        )}
+        {statsSnapshot &&
+          updaterStatus?.available &&
+          isNewer(statsSnapshot.service.version, updaterStatus.available) && (
+            <Button
+              size="sm"
+              onClick={async () => {
+                setUpdateOpen(true);
+                try {
+                  await axios.post("updater/start");
+                } catch {
+                  toast.error(t("update.startError"));
+                }
+              }}
+            >
+              {t("update.button", { version: updaterStatus.available })}
+            </Button>
+          )}
       </div>
       {statsSnapshot && (
         <UpdateDialog

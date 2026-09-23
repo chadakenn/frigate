@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type Status = { phase: string; message: string; available?: string };
+type Status = { phase: string; message: string };
 
 export default function UpdateDialog({
   open,
@@ -43,19 +42,9 @@ export default function UpdateDialog({
     return () => window.clearInterval(timer);
   }, [open, t]);
 
-  const start = async () => {
-    try {
-      await axios.post("updater/start");
-      setStatus({ phase: "pulling", message: t("update.downloading") });
-    } catch {
-      setError(t("update.startError"));
-    }
-  };
-
   const busy = ["pulling", "installing", "rollback"].includes(
     status?.phase ?? "",
   );
-  const available = status?.available;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -66,11 +55,6 @@ export default function UpdateDialog({
           </DialogDescription>
         </DialogHeader>
         <p role="status">{error || status?.message || t("update.checking")}</p>
-        {available && available !== current && !busy && (
-          <Button onClick={start}>
-            {t("update.install", { version: available })}
-          </Button>
-        )}
         {busy && <p>{t("update.restarting")}</p>}
       </DialogContent>
     </Dialog>

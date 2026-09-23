@@ -13,14 +13,12 @@
   },
   "title": "System",
   "update": {
-    "button": "Update",
+    "button": "Update to {{version}}",
     "title": "Update Frigate",
     "description": "Running {{current}}. Latest upstream release: {{latest}}.",
     "unavailable": "Host updater unavailable",
-    "downloading": "Downloading the update",
     "startError": "Unable to start the update. Check host updater logs.",
     "checking": "Checking for a custom image...",
-    "install": "Install {{version}}",
     "restarting": "The updater will continue while Frigate restarts. Reopen this page shortly."
   },
   "metrics": "System metrics",
