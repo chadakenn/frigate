@@ -21,7 +21,7 @@ BACKUPS = Path("/root/frigate-update-backups")
 SOCKET = Path("/opt/frigate-updater/run/updater.sock")
 IMAGE = "ghcr.io/chadakenn/frigate"
 VERSION = re.compile(r"^\d+\.\d+\.\d+$")
-IMAGE_LINE = re.compile(r"^(\s+image:\s*)(\S+)(\s*(?:#.*)?)$")
+IMAGE_LINE = re.compile(r"^(\s+image:\s*)([\"']?)([^\"'\s]+)\2(\s*(?:#.*)?)$")
 state = {"phase": "idle", "message": "Checking for a release"}
 logger = logging.getLogger(__name__)
 lock = threading.Lock()
@@ -52,7 +52,7 @@ def current_image(contents: str) -> tuple[int, re.Match[str]]:
     if len(matches) != 1:
         raise ValueError("Expected one image in the Frigate service")
     index, match = matches[0]
-    if not match[2].startswith((IMAGE + ":", "ghcr.io/blakeblackshear/frigate:")):
+    if not match[3].startswith((IMAGE + ":", "ghcr.io/blakeblackshear/frigate:")):
         raise ValueError("Unexpected image in the Frigate service")
     return index, match
 
@@ -60,7 +60,7 @@ def current_image(contents: str) -> tuple[int, re.Match[str]]:
 def compose_with_image(contents: str, version: str) -> str:
     index, match = current_image(contents)
     lines = contents.splitlines(keepends=True)
-    lines[index] = f"{match[1]}{IMAGE}:{version}{match[3]}\n"
+    lines[index] = f"{match[1]}{match[2]}{IMAGE}:{version}{match[2]}{match[4]}\n"
     return "".join(lines)
 
 
@@ -138,7 +138,9 @@ def run_update() -> None:
                 command("docker", "compose", "-f", str(COMPOSE), "stop", "frigate")
                 write_compose(previous)
                 if backup and (backup / "config").exists():
-                    shutil.copytree(backup / "config", CONFIG, dirs_exist_ok=True)
+                    failed_config = CONFIG.with_name(f"config.failed-{backup.name}")
+                    CONFIG.rename(failed_config)
+                    shutil.copytree(backup / "config", CONFIG)
                 command("docker", "compose", "-f", str(COMPOSE), "up", "-d", "frigate")
             state.update(phase="failed", message="Update failed. Previous version restarted")
         except Exception:

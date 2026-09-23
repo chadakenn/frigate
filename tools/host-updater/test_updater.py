@@ -28,6 +28,11 @@ class ComposeReplacementTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             updater.compose_with_image("services:\n  frigate:\n    image: attacker/image:tag\n", "0.18.1")
 
+    def test_quoted_image_is_supported(self):
+        original = 'services:\n  frigate:\n    image: "ghcr.io/blakeblackshear/frigate:0.18.0"\n'
+        updated = updater.compose_with_image(original, "0.18.1")
+        self.assertIn('image: "ghcr.io/chadakenn/frigate:0.18.1"', updated)
+
 
 if __name__ == "__main__":
     unittest.main()
