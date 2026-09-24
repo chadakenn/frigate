@@ -26,6 +26,9 @@ import { DEFAULT_NOTICE_FILTER, NoticeFilter } from "@/types/health";
 import { useTranslation } from "react-i18next";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import UpdateAvailableDialog from "@/components/overlay/UpdateAvailableDialog";
+import { isNewerVersion } from "@/utils/version";
 
 const allMetrics = [
   "health",
@@ -72,6 +75,7 @@ function System() {
   const [noticeFilter, setNoticeFilter] = useState<NoticeFilter>(
     DEFAULT_NOTICE_FILTER,
   );
+  const [updateOpen, setUpdateOpen] = useState(false);
 
   // Track which tabs have been visited so we can keep them mounted after first visit.
   // Using a ref updated during render avoids extra render cycles from state/effects.
@@ -90,6 +94,13 @@ function System() {
   const { data: statsSnapshot } = useSWR<FrigateStats>("stats", {
     revalidateOnFocus: false,
   });
+
+  const currentVersion = statsSnapshot?.service.version;
+  const latestVersion = statsSnapshot?.service.latest_version;
+  const updateAvailable =
+    currentVersion !== undefined &&
+    latestVersion !== undefined &&
+    isNewerVersion(currentVersion, latestVersion);
 
   return (
     <div className="flex size-full flex-col p-2">
@@ -151,14 +162,37 @@ function System() {
           )}
         </div>
       </div>
-      <div className="mt-2 flex items-end gap-2">
+      <div className="mt-2 flex items-center gap-2">
         <div className="h-full content-center font-medium">{t("title")}</div>
         {statsSnapshot && (
           <div className="h-full content-center text-sm text-muted-foreground">
             {statsSnapshot.service.version}
           </div>
         )}
+        {updateAvailable && currentVersion && latestVersion && (
+          <Button
+            variant="select"
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => setUpdateOpen(true)}
+          >
+            {t("update.button")}
+          </Button>
+        )}
+        {statsSnapshot && !updateAvailable && latestVersion && latestVersion !== "unknown" && latestVersion !== "disabled" && (
+          <div className="text-xs text-muted-foreground">
+            {t("update.upToDate")}
+          </div>
+        )}
       </div>
+      {currentVersion && latestVersion && (
+        <UpdateAvailableDialog
+          open={updateOpen}
+          onOpenChange={setUpdateOpen}
+          currentVersion={currentVersion}
+          latestVersion={latestVersion}
+        />
+      )}
       {visitedTabs.has("health") && (
         <div className={pageToggle == "health" ? "contents" : "hidden"}>
           <HealthMetrics noticeFilter={noticeFilter} />
